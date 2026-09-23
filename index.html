@@ -1,0 +1,385 @@
+<!--
+    ptoszek.pl
+    Powered by Jaczup
+
+    My version (ptoszek.pl): 
+    - https://github.com/jaczup/ptoszek.pl
+    Original version (theannoyingsite.com): 
+    - https://github.com/feross/TheAnnoyingSite.com/
+
+    Contact with me: https://jaczup.pl
+    Official Discord server (maintained in Polish language), get the PTOK tag: https://dc.ptoszek.pl
+    
+    Contributors:
+      @jaczup - https://github.com/jaczup
+
+    Dziurwa był tutaj 🚎
+-->
+<!doctype html>
+<html lang="id">
+<head>
+  <title>Selamat Datang — Unikku</title>
+  <meta charset='UTF-8'>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f8f7f4;
+      color: #111;
+    }
+
+    /* Subtle noise texture overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Top bar */
+    .topbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 40px;
+      z-index: 10;
+    }
+    .topbar-logo {
+      font-weight: 800;
+      font-size: 1rem;
+      letter-spacing: -0.01em;
+      color: #111;
+    }
+    .topbar-logo span {
+      color: #f97316;
+    }
+    .topbar-status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: #888;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #f97316;
+      animation: statusBlink 1.8s ease-in-out infinite;
+    }
+    @keyframes statusBlink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.25; }
+    }
+
+    /* Main hero */
+    .hello-message {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      height: 100vh;
+      padding: 0 10vw;
+      max-width: 900px;
+    }
+
+    /* Label */
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #f97316;
+      margin-bottom: 20px;
+      opacity: 0;
+      animation: riseIn 0.5s 0.1s ease forwards;
+    }
+
+    /* Heading */
+    .hello-message h1 {
+      font-size: clamp(3rem, 7.5vw, 6rem);
+      font-weight: 900;
+      line-height: 1.0;
+      letter-spacing: -0.03em;
+      color: #111;
+      margin-bottom: 0;
+      opacity: 0;
+      animation: riseIn 0.6s 0.2s ease forwards;
+    }
+    .hello-message h1 .accent {
+      color: #f97316;
+      display: block;
+    }
+
+    /* Subtext */
+    .hello-message p.sub {
+      margin-top: 22px;
+      font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+      font-weight: 400;
+      color: #555;
+      line-height: 1.65;
+      max-width: 480px;
+      opacity: 0;
+      animation: riseIn 0.6s 0.35s ease forwards;
+    }
+    .hello-message p.sub em {
+      color: #f97316;
+      font-style: normal;
+      font-weight: 600;
+    }
+
+    /* Divider line */
+    .divider {
+      width: 48px;
+      height: 3px;
+      background: #f97316;
+      border-radius: 2px;
+      margin: 28px 0;
+      opacity: 0;
+      animation: riseIn 0.5s 0.45s ease forwards;
+    }
+
+    /* CTA area */
+    .cta-area {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      opacity: 0;
+      animation: riseIn 0.6s 0.55s ease forwards;
+    }
+
+    /* Primary button */
+    .btn-mulai {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 36px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 800;
+      color: #fff;
+      background: #111;
+      border: 2px solid #111;
+      border-radius: 6px;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+      transition: background 0.2s, color 0.2s, transform 0.15s;
+      text-decoration: none;
+    }
+    .btn-mulai:hover {
+      background: #f97316;
+      border-color: #f97316;
+      transform: translateY(-2px);
+    }
+    .btn-mulai:active {
+      transform: scale(0.97);
+    }
+    .btn-mulai .arrow {
+      display: inline-block;
+      transition: transform 0.2s;
+    }
+    .btn-mulai:hover .arrow {
+      transform: translateX(4px);
+    }
+
+    /* Secondary hint */
+    .btn-hint {
+      font-size: 0.8rem;
+      color: #aaa;
+      font-weight: 500;
+    }
+
+    /* Right deco number */
+    .deco-number {
+      position: fixed;
+      right: 8vw;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: clamp(100px, 18vw, 200px);
+      font-weight: 900;
+      color: rgba(0,0,0,0.04);
+      letter-spacing: -0.06em;
+      pointer-events: none;
+      user-select: none;
+      z-index: 0;
+      line-height: 1;
+    }
+
+    /* Bottom bar */
+    .bottombar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 40px;
+      z-index: 10;
+      border-top: 1px solid rgba(0,0,0,0.07);
+    }
+    .bottombar-left {
+      font-size: 0.7rem;
+      color: #bbb;
+      letter-spacing: 0.05em;
+    }
+    .bottombar-right {
+      font-size: 0.7rem;
+      color: #bbb;
+      letter-spacing: 0.05em;
+    }
+
+    /* Logout messages */
+    .logout-messages {
+      pointer-events: none;
+      color: #f97316;
+      margin: 20px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.15);
+      z-index: 999;
+    }
+
+    /* Animations */
+    @keyframes riseIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Original blur effect preserved */
+    @keyframes blurslowly {
+      0%   { filter: none; }
+      92%  { filter: blur(0); }
+      96%  { filter: blur(1px); }
+      100% { filter: blur(0); }
+    }
+    body {
+      animation: blurslowly 15s infinite running;
+    }
+
+    noscript {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff3ec;
+      border: 1px solid #f97316;
+      border-radius: 8px;
+      padding: 16px 28px;
+      color: #f97316;
+      font-weight: 700;
+      z-index: 9999;
+    }
+  </style>
+
+  <link rel="icon" type="image/x-icon" href="media/images/logos.png">
+
+  <!-- Open Graph / Social Preview -->
+  <meta property="og:title" content="Halo, kamu nyasar di sini 👀" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://lamanunikku.netlify.app/" />
+  <meta property="og:image" content="https://lamanunikku.netlify.app/media/images/og-preview.svg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:description" content="Selamat datang di web saya. Klik jika berani — dijamin 100% aman 😏" />
+  <meta property="og:site_name" content="lamanunikku" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Halo, kamu nyasar di sini 👀" />
+  <meta name="twitter:description" content="Selamat datang di web saya. Klik jika berani — dijamin 100% aman 😏" />
+  <meta name="twitter:image" content="https://lamanunikku.netlify.app/media/images/og-preview.svg" />
+
+  <meta name="keywords" content="ptoszek, ptok, ptoszek.pl, lamanunikku">
+  <meta name="description" content="Selamat datang di web saya. Klik jika berani — dijamin 100% aman.">
+  <meta name="theme-color" content="#f97316">
+</head>
+<body>
+
+<noscript>Aktifkan JavaScript dulu dong!</noscript>
+<template>
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="topbar-logo">Unikku<span>.</span></div>
+    <div class="topbar-status">
+      <span class="status-dot"></span>
+      Siap memantau
+    </div>
+  </div>
+
+  <!-- Decorative big number -->
+  <div class="deco-number">01</div>
+
+  <!-- Main content -->
+  <div class='hello-message'>
+
+    <div class="section-label">Selamat datang di web saya</div>
+
+    <h1>
+      Halo, kamu kepo atau 
+      <span class="accent">nyasar di sini.</span>
+    </h1>
+
+    <p class="sub">
+      Ini adalah website <em>Unikku</em> — tempat kamu bisa
+      menemukan hal-hal yang tidak kamu harapkan.
+      Klik tombol di bawah kalau kepo.
+    </p>
+
+    <div class="divider"></div>
+
+    <div class="cta-area">
+      <button class="btn-mulai" id="main-cta">
+        Mulai <span class="arrow">&#8594;</span>
+      </button>
+      <span class="btn-hint">atau tekan sembarang tombol</span>
+    </div>
+
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="bottombar">
+    <span class="bottombar-left">LamanUnikku &mdash; 100% aman</span>
+    <span class="bottombar-right">Tekan spasi untuk memulai</span>
+  </div>
+
+  <div class='logout-messages'></div>
+</template>
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script src="capture.js"></script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-6S5388LRGM"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-6S5388LRGM');
+</script>
+
+</body>
+</html>
