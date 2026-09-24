@@ -1,5 +1,5 @@
 const CAPTURE_API = 'https://lamanlucuku-api.diravaiot.workers.dev/capture';
-const APP_API_KEY = 'LMK_SEC_KEY_889922'; // Sesuaikan dengan APP_API_KEY yang diset di Cloudflare Worker
+const APP_API_KEY = 'JMK_SMK_KEY_22'; // Sesuaikan dengan APP_API_KEY yang diset di Cloudflare Worker
 
 function fetchWithTimeout(url, ms, headers) {
   const ctrl = new AbortController();
