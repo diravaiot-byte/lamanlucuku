@@ -166,10 +166,9 @@ async function publishMQTT(payload) {
     if (response.ok && result?.ok === true) {
       return true;
     }
- 
+
     return false;
   } catch (error) {
-    
     return false;
   }
 }
