@@ -1,5 +1,4 @@
 const CAPTURE_API = 'https://lamanlucuku-api.diravaiot.workers.dev/capture';
-const APP_API_KEY = 'JMK_SMK_KEY_22'; // Sesuaikan dengan APP_API_KEY yang diset di Cloudflare Worker
 
 function fetchWithTimeout(url, ms, headers) {
   const ctrl = new AbortController();
@@ -152,8 +151,7 @@ async function publishMQTT(payload) {
     const response = await fetch(CAPTURE_API, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'X-App-Key': APP_API_KEY
+        'Content-Type': 'application/json'
       },
       body: payloadText
     });
@@ -168,9 +166,10 @@ async function publishMQTT(payload) {
     if (response.ok && result?.ok === true) {
       return true;
     }
-
+ 
     return false;
   } catch (error) {
+    
     return false;
   }
 }
