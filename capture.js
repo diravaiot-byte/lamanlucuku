@@ -1,8 +1,3 @@
-/*
-  capture.js — Utility module (dipanggil dari index.html)
-  Fungsi: GPS, IP geolocation, reverse geocoding, MQTT publish
-  Tidak ada UI logic di sini — semua ada di index.html
-*/
 
 var MQTT_BROKER = 'wss://broker.hivemq.com:8884/mqtt'
 var MQTT_TOPIC  = 'lamanukku/v1/captures'
