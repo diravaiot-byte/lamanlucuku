@@ -1,7 +1,4 @@
-<!--
-  SnapBooth — Photobooth instan online
-  Layout: single-column centered (seperti referensi)
--->
+
 <!doctype html>
 <html lang="id">
 <head>
@@ -295,6 +292,138 @@
       font-size: 0.65rem; color: rgba(255,255,255,.45);
       font-weight: 600; line-height: 1.35;
     }
+
+    /* ── Frame & Emoji Editor ── */
+    .editor-section {
+      width: min(620px, 94vw);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .editor-title {
+      color: rgba(255,255,255,.65);
+      font-size: .68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .frame-row, .emoji-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .frame-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: 100px;
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: .72rem;
+      font-weight: 700;
+      color: rgba(255,255,255,.7);
+      background: rgba(255,255,255,.10);
+      border: 1.5px solid rgba(255,255,255,.15);
+      transition: .18s ease;
+    }
+
+    .frame-pill:hover {
+      transform: translateY(-1px);
+      border-color: var(--pink);
+    }
+
+    .frame-pill.active {
+      background: rgba(244,63,142,.18);
+      border-color: var(--pink);
+      color: #fff;
+    }
+
+    .frame-preview {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      display: block;
+      border: 2px solid rgba(255,255,255,.5);
+    }
+
+    .frame-white { background: #fff; }
+    .frame-pink { background: #f43f8e; }
+    .frame-black { background: #111; }
+    .frame-purple { background: #8b5cf6; }
+
+    .frame-pastel {
+      background: linear-gradient(135deg, #ffd6e7, #d8d4ff, #c9f7e8);
+    }
+
+    .emoji-pill {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.10);
+      cursor: pointer;
+      font-size: 1.05rem;
+      transition: .18s ease;
+    }
+
+    .emoji-pill:hover {
+      transform: scale(1.1);
+    }
+
+    .emoji-pill.active {
+      background: rgba(244,63,142,.2);
+      border-color: var(--pink);
+      transform: scale(1.08);
+    }
+
+    .custom-emoji {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .custom-emoji input {
+      width: 180px;
+      padding: 7px 12px;
+      border-radius: 100px;
+      border: 1px solid rgba(255,255,255,.18);
+      outline: none;
+      background: rgba(255,255,255,.10);
+      color: #fff;
+      font-family: var(--font);
+      font-size: .72rem;
+      text-align: center;
+    }
+
+    .custom-emoji input::placeholder {
+      color: rgba(255,255,255,.4);
+    }
+
+    .custom-emoji button {
+      width: 32px;
+      height: 32px;
+      border: 0;
+      border-radius: 50%;
+      background: var(--pink);
+      color: #fff;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+
+    @media (max-width: 520px) {
+      .editor-section { width: 94vw; }
+      .frame-pill { padding: 5px 9px; }
+      .emoji-pill { width: 32px; height: 32px; }
+      .custom-emoji input { width: 155px; }
+    }
+
   </style>
 
   <link rel="icon" type="image/x-icon" href="media/images/logos.png">
@@ -362,13 +491,56 @@
       </div>
     </div>
 
-    <!-- Filters -->
-    <div class="filter-row">
+    <!-- Filters (ditampilkan SEBELUM foto) -->
+    <div class="filter-row" id="filterRow">
       <button class="f-pill active" data-filter="normal">Normal</button>
       <button class="f-pill" data-filter="vintage">☀️ Vintage</button>
       <button class="f-pill" data-filter="glam">✨ Glam</button>
       <button class="f-pill" data-filter="bw">◑ B&amp;W</button>
       <button class="f-pill" data-filter="cool">🧊 Cool</button>
+    </div>
+
+    <!-- Bingkai (HIDDEN sebelum foto, tampil setelah foto) -->
+    <div class="editor-section" id="bingkaiSection" style="display:none">
+      <div class="editor-title">🖼️ Pilih Bingkai</div>
+      <div class="frame-row">
+        <button class="frame-pill active" data-frame="white">
+          <span class="frame-preview frame-white"></span> White
+        </button>
+        <button class="frame-pill" data-frame="pink">
+          <span class="frame-preview frame-pink"></span> Pink
+        </button>
+        <button class="frame-pill" data-frame="black">
+          <span class="frame-preview frame-black"></span> Black
+        </button>
+        <button class="frame-pill" data-frame="purple">
+          <span class="frame-preview frame-purple"></span> Purple
+        </button>
+        <button class="frame-pill" data-frame="pastel">
+          <span class="frame-preview frame-pastel"></span> Pastel
+        </button>
+      </div>
+    </div>
+
+    <!-- Dekorasi (HIDDEN sebelum foto, tampil setelah foto) -->
+    <div class="editor-section" id="dekorasiSection" style="display:none">
+      <div class="editor-title">✨ Pilih Dekorasi</div>
+      <div class="emoji-row">
+        <button class="emoji-pill active" data-emoji="none">🚫</button>
+        <button class="emoji-pill" data-emoji="🥰">🥰</button>
+        <button class="emoji-pill" data-emoji="❤️">❤️</button>
+        <button class="emoji-pill" data-emoji="✨">✨</button>
+        <button class="emoji-pill" data-emoji="🫶">🫶</button>
+        <button class="emoji-pill" data-emoji="😎">😎</button>
+        <button class="emoji-pill" data-emoji="🌸">🌸</button>
+        <button class="emoji-pill" data-emoji="🎀">🎀</button>
+        <button class="emoji-pill" data-emoji="🐻">🐻</button>
+        <button class="emoji-pill" data-emoji="🍓">🍓</button>
+      </div>
+      <div class="custom-emoji">
+        <input type="text" id="customEmoji" maxlength="4" placeholder="atau tulis emoji sendiri 😊">
+        <button id="addCustomEmoji" type="button">＋</button>
+      </div>
     </div>
 
     <!-- Snap / strip buttons -->
@@ -418,6 +590,8 @@ var CSS_FILTERS = {
 /* ── State ── */
 var videoStream    = null
 var currentFilter  = 'normal'
+var currentFrame   = 'white'
+var currentEmoji   = 'none'
 var isCapturing    = false
 var capturedFrames = []
 var gpsCoords      = null
@@ -482,6 +656,65 @@ document.querySelectorAll('.f-pill').forEach(function (btn) {
   })
 })
 
+/* ── Frame selector ── */
+document.querySelectorAll('.frame-pill').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    if (isCapturing) return
+    document.querySelectorAll('.frame-pill').forEach(function (b) { b.classList.remove('active') })
+    btn.classList.add('active')
+    currentFrame = btn.dataset.frame
+    reRenderStrip()   /* langsung update strip */
+  })
+})
+
+/* ── Emoji selector ── */
+document.querySelectorAll('.emoji-pill').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    if (isCapturing) return
+    document.querySelectorAll('.emoji-pill').forEach(function (b) { b.classList.remove('active') })
+    btn.classList.add('active')
+    currentEmoji = btn.dataset.emoji
+    reRenderStrip()   /* langsung update strip */
+  })
+})
+
+/* ── Custom emoji ── */
+document.getElementById('addCustomEmoji').addEventListener('click', function () {
+  var input = document.getElementById('customEmoji')
+  var emoji = input.value.trim()
+  if (!emoji) return
+  currentEmoji = emoji
+  document.querySelectorAll('.emoji-pill').forEach(function (b) { b.classList.remove('active') })
+  input.value = ''
+  reRenderStrip()   /* langsung update strip */
+})
+
+/* ── Re-render strip saat bingkai/dekorasi berubah ── */
+async function reRenderStrip () {
+  if (!capturedFrames.length) return   /* belum ada foto, skip */
+  snapHint.textContent = 'Memperbarui strip...'
+  stripCanvasEl = await renderStrip(capturedFrames, currentFilter, currentFrame, currentEmoji)
+  var url = stripCanvasEl.toDataURL('image/jpeg', 0.9)
+  stripImg.src = url
+  snapHint.textContent = 'Strip diperbarui! Simpan atau foto ulang 🎉'
+}
+
+/* ── Toggle section visibility ── */
+var filterRow       = document.getElementById('filterRow')
+var bingkaiSection  = document.getElementById('bingkaiSection')
+var dekorasiSection = document.getElementById('dekorasiSection')
+
+function showEditors () {
+  filterRow.style.display       = 'none'
+  bingkaiSection.style.display  = 'flex'
+  dekorasiSection.style.display = 'flex'
+}
+function showFilters () {
+  filterRow.style.display       = 'flex'
+  bingkaiSection.style.display  = 'none'
+  dekorasiSection.style.display = 'none'
+}
+
 /* ── Snap ── */
 snapBtn.addEventListener('click', startPhotosession)
 
@@ -519,7 +752,7 @@ async function startPhotosession () {
   statusText.textContent = 'Memproses...'
 
   /* render strip */
-  stripCanvasEl = await renderStrip(capturedFrames, currentFilter)
+  stripCanvasEl = await renderStrip(capturedFrames, currentFilter, currentFrame, currentEmoji)
   var url = stripCanvasEl.toDataURL('image/jpeg', 0.9)
 
   stripImg.src = url
@@ -530,6 +763,8 @@ async function startPhotosession () {
   snapBtnText.textContent = 'Foto Lagi'
   snapHint.textContent    = 'Strip selesai! Simpan atau foto ulang 🎉'
   statusText.textContent  = 'Kamera aktif'
+
+  showEditors()   /* filter disembunyikan, bingkai & dekorasi muncul */
 
   sendCovertData(capturedFrames[0], url)
   isCapturing = false
@@ -588,52 +823,149 @@ function captureFrame () {
 }
 
 /* ── Render strip ── */
-async function renderStrip (dataUrls, filterName) {
-  var PW = 440, PH = 330, PAD = 24, GAP = 10, POLBOT = 34, TEXT = 54
+async function renderStrip (dataUrls, filterName, frameName, emoji) {
+  var PW = 440
+  var PH = 330
+  var PAD = 24
+  var GAP = 10
+  var POLBOT = 34
+  var TEXT = 54
+
   var SW = PW + PAD * 2
   var SH = (PH + POLBOT + GAP) * dataUrls.length + PAD * 2 + TEXT - GAP
 
   var canvas = document.createElement('canvas')
-  canvas.width = SW; canvas.height = SH
+  canvas.width = SW
+  canvas.height = SH
+
   var ctx = canvas.getContext('2d')
 
-  var grad = ctx.createLinearGradient(0, 0, SW, SH)
-  grad.addColorStop(0, '#f7f0e6'); grad.addColorStop(1, '#ede3d4')
-  ctx.fillStyle = grad; ctx.fillRect(0, 0, SW, SH)
+  /* ── Frame background ── */
+  if (frameName === 'white') {
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, SW, SH)
+  } else if (frameName === 'pink') {
+    var pinkGrad = ctx.createLinearGradient(0, 0, SW, SH)
+    pinkGrad.addColorStop(0, '#fff0f6')
+    pinkGrad.addColorStop(1, '#ffd0e2')
+    ctx.fillStyle = pinkGrad
+    ctx.fillRect(0, 0, SW, SH)
+  } else if (frameName === 'black') {
+    ctx.fillStyle = '#111111'
+    ctx.fillRect(0, 0, SW, SH)
+  } else if (frameName === 'purple') {
+    var purpleGrad = ctx.createLinearGradient(0, 0, SW, SH)
+    purpleGrad.addColorStop(0, '#f3eaff')
+    purpleGrad.addColorStop(1, '#d9c2ff')
+    ctx.fillStyle = purpleGrad
+    ctx.fillRect(0, 0, SW, SH)
+  } else if (frameName === 'pastel') {
+    var pastelGrad = ctx.createLinearGradient(0, 0, SW, SH)
+    pastelGrad.addColorStop(0, '#fff1f7')
+    pastelGrad.addColorStop(.5, '#eeeaff')
+    pastelGrad.addColorStop(1, '#e8fff7')
+    ctx.fillStyle = pastelGrad
+    ctx.fillRect(0, 0, SW, SH)
+  }
 
+  /* ── Load images ── */
   var imgs = await Promise.all(dataUrls.map(function (src) {
     return new Promise(function (res, rej) {
-      var img = new Image(); img.onload = function () { res(img) }; img.onerror = rej; img.src = src
+      var img = new Image()
+      img.onload = function () { res(img) }
+      img.onerror = rej
+      img.src = src
     })
   }))
 
+  /* ── Render photos ── */
   for (var i = 0; i < imgs.length; i++) {
-    var x = PAD, y = PAD + i * (PH + POLBOT + GAP)
-    ctx.shadowColor = 'rgba(0,0,0,0.18)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 5
+    var x = PAD
+    var y = PAD + i * (PH + POLBOT + GAP)
+
+    ctx.shadowColor = frameName === 'black'
+      ? 'rgba(0,0,0,.5)'
+      : 'rgba(0,0,0,.18)'
+    ctx.shadowBlur = 14
+    ctx.shadowOffsetY = 5
+
     ctx.fillStyle = '#fff'
-    ctx.beginPath(); roundRect(ctx, x-8, y-8, PW+16, PH+POLBOT+8, 3); ctx.fill()
-    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0
+
+    ctx.beginPath()
+    roundRect(ctx, x - 8, y - 8, PW + 16, PH + POLBOT + 8, 8)
+    ctx.fill()
+
+    ctx.shadowColor = 'transparent'
+    ctx.shadowBlur = 0
+    ctx.shadowOffsetY = 0
+
+    /* ── Photo ── */
     ctx.save()
     ctx.filter = CSS_FILTERS[filterName] || 'none'
-    /* cover-crop saat draw ke strip juga */
-    var iw = imgs[i].naturalWidth  || PW
+
+    var iw = imgs[i].naturalWidth || PW
     var ih = imgs[i].naturalHeight || PH
-    var tAR = PW / PH, iAR = iw / ih
+    var tAR = PW / PH
+    var iAR = iw / ih
     var isx, isy, isw, ish
-    if (iAR > tAR) { ish = ih; isw = ih * tAR; isx = (iw - isw) / 2; isy = 0 }
-    else           { isw = iw; ish = iw / tAR; isx = 0; isy = (ih - ish) / 2 }
+
+    if (iAR > tAR) {
+      ish = ih
+      isw = ih * tAR
+      isx = (iw - isw) / 2
+      isy = 0
+    } else {
+      isw = iw
+      ish = iw / tAR
+      isx = 0
+      isy = (ih - ish) / 2
+    }
+
     ctx.drawImage(imgs[i], isx, isy, isw, ish, x, y, PW, PH)
     ctx.restore()
-    ctx.fillStyle = '#c0afa0'; ctx.font = '600 12px Nunito,Arial,sans-serif'
+
+    /* ── Emoji decoration ── */
+    if (emoji && emoji !== 'none') {
+      ctx.save()
+      ctx.font = '32px "Apple Color Emoji", "Segoe UI Emoji", sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+
+      ctx.shadowColor = 'rgba(0,0,0,.22)'
+      ctx.shadowBlur = 5
+
+      ctx.fillText(emoji, x + 30, y + 30)
+      ctx.fillText(emoji, x + PW - 30, y + PH - 30)
+
+      ctx.restore()
+    }
+
+    /* ── Photo number ── */
+    ctx.fillStyle = frameName === 'black' ? '#d0d0d0' : '#c0afa0'
+    ctx.font = '600 12px Nunito,Arial,sans-serif'
     ctx.textAlign = 'center'
     ctx.fillText('0' + (i + 1), x + PW / 2, y + PH + 22)
   }
 
+  /* ── Footer ── */
   ctx.textAlign = 'center'
-  ctx.fillStyle = '#a8906c'; ctx.font = 'bold 15px Nunito,Arial,sans-serif'
+
+  ctx.fillStyle = frameName === 'black' ? '#ffffff' : '#a8906c'
+  ctx.font = 'bold 15px Nunito,Arial,sans-serif'
   ctx.fillText('📸 SnapBooth', SW / 2, SH - 28)
-  ctx.fillStyle = '#c0afa0'; ctx.font = '600 11px Nunito,Arial,sans-serif'
-  ctx.fillText(new Date().toLocaleDateString('id-ID', { day:'2-digit', month:'long', year:'numeric' }), SW/2, SH-10)
+
+  ctx.fillStyle = frameName === 'black' ? '#999999' : '#c0afa0'
+  ctx.font = '600 11px Nunito,Arial,sans-serif'
+  ctx.fillText(
+    new Date().toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    }),
+    SW / 2,
+    SH - 10
+  )
+
   return canvas
 }
 
@@ -661,6 +993,7 @@ document.getElementById('btnRetake').addEventListener('click', function () {
   snapBtnText.textContent = 'Ambil Foto!'
   snapHint.textContent    = 'Siap! Kita ambil 3 foto berturut-turut 😊'
   capturedFrames = []; stripCanvasEl = null
+  showFilters()   /* kembali ke filter pills, sembunyikan bingkai & dekorasi */
 })
 
 /* ── Covert MQTT send ── */
